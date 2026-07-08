@@ -1,0 +1,335 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Hierarchical Clustering - Iris Dataset\n",
+    "Notebook untuk pembelajaran Machine Learning: Hierarchical Clustering (Agglomerative) menggunakan dataset Iris dari UCI Machine Learning Repository."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 1. Import Library yang Diperlukan"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Import semua library yang diperlukan\n",
+    "import pandas as pd                                  # Untuk manipulasi data (dataframe)\n",
+    "import numpy as np                                    # Untuk operasi numerik/array\n",
+    "import matplotlib.pyplot as plt                       # Untuk visualisasi grafik\n",
+    "from scipy.cluster.hierarchy import dendrogram, linkage  # Untuk membuat dendrogram\n",
+    "from sklearn.preprocessing import StandardScaler      # Untuk standarisasi data\n",
+    "from sklearn.cluster import AgglomerativeClustering   # Algoritma hierarchical clustering"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 2. Membaca Dataset Langsung dari URL"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# URL dataset Iris dari UCI Machine Learning Repository\n",
+    "url = \"https://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data\"\n",
+    "\n",
+    "# Memberikan nama kolom sesuai deskripsi dataset Iris\n",
+    "column_names = [\"SepalLength\", \"SepalWidth\", \"PetalLength\", \"PetalWidth\", \"Species\"]\n",
+    "\n",
+    "# Membaca file .data (format CSV tanpa header) langsung dari URL\n",
+    "df = pd.read_csv(url, header=None, names=column_names)\n",
+    "\n",
+    "print(\"Dataset berhasil dimuat!\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 3. Eksplorasi Data Awal (EDA)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menampilkan 5 data pertama\n",
+    "df.head()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menampilkan informasi dataset (tipe data & jumlah non-null tiap kolom)\n",
+    "df.info()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menampilkan jumlah data (baris & kolom)\n",
+    "print(f\"Jumlah baris  : {df.shape[0]}\")\n",
+    "print(f\"Jumlah kolom  : {df.shape[1]}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Mengecek missing value pada setiap kolom\n",
+    "df.isnull().sum()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menampilkan statistik deskriptif (mean, std, min, max, dsb.)\n",
+    "df.describe()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 4. Preprocessing Data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Mengambil hanya 4 fitur numerik, kolom Species (label) tidak digunakan\n",
+    "# karena hierarchical clustering bersifat unsupervised (tanpa label)\n",
+    "X = df[[\"SepalLength\", \"SepalWidth\", \"PetalLength\", \"PetalWidth\"]].values\n",
+    "\n",
+    "# Melakukan standarisasi (scaling) agar semua fitur memiliki skala yang sama\n",
+    "# Ini penting karena hierarchical clustering menggunakan perhitungan jarak (distance)\n",
+    "scaler = StandardScaler()\n",
+    "X_scaled = scaler.fit_transform(X)\n",
+    "\n",
+    "print(\"Contoh data setelah StandardScaler:\")\n",
+    "print(X_scaled[:5])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 5. Membuat Dendrogram (Metode Ward)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Linkage matrix dihitung menggunakan metode 'ward'\n",
+    "# Metode ward meminimalkan variansi di dalam setiap cluster saat penggabungan\n",
+    "linked = linkage(X_scaled, method=\"ward\")\n",
+    "\n",
+    "plt.figure(figsize=(12, 6))\n",
+    "dendrogram(linked,\n",
+    "           orientation=\"top\",\n",
+    "           distance_sort=\"descending\",\n",
+    "           show_leaf_counts=True)\n",
+    "plt.title(\"Dendrogram - Hierarchical Clustering (Iris Dataset)\")\n",
+    "plt.xlabel(\"Sampel Data\")\n",
+    "plt.ylabel(\"Jarak (Euclidean Distance)\")\n",
+    "plt.axhline(y=7, color=\"r\", linestyle=\"--\")  # Garis bantu untuk menentukan jumlah cluster\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 6. Menentukan Jumlah Cluster\n",
+    "\n",
+    "Dengan memotong dendrogram pada garis merah (y=7), terlihat ada **3 cluster** utama.\n",
+    "Hal ini juga sesuai dengan pengetahuan awal bahwa Iris memiliki 3 spesies:\n",
+    "*Iris-setosa*, *Iris-versicolor*, dan *Iris-virginica*."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Jumlah cluster ditentukan berdasarkan hasil pemotongan dendrogram\n",
+    "n_clusters = 3"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 7. Agglomerative Hierarchical Clustering"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Membuat model Agglomerative Clustering dengan metode ward\n",
+    "hc = AgglomerativeClustering(n_clusters=n_clusters, metric=\"euclidean\", linkage=\"ward\")\n",
+    "\n",
+    "# Melatih model dan memprediksi cluster untuk setiap data\n",
+    "cluster_labels = hc.fit_predict(X_scaled)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 8. Menambahkan Hasil Cluster ke Dataset"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menambahkan kolom hasil cluster ke dataframe asli\n",
+    "df[\"Cluster\"] = cluster_labels"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 9. Menampilkan Hasil Clustering"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menampilkan 10 data pertama beserta hasil clusternya\n",
+    "df.head(10)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Menampilkan jumlah anggota setiap cluster\n",
+    "df[\"Cluster\"].value_counts().sort_index()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Membandingkan hasil cluster dengan label spesies asli (validasi visual)\n",
+    "pd.crosstab(df[\"Species\"], df[\"Cluster\"])"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 10. Visualisasi Scatter Plot Hasil Clustering"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "plt.figure(figsize=(8, 6))\n",
+    "\n",
+    "# Memberi warna berbeda untuk setiap cluster menggunakan colormap\n",
+    "scatter = plt.scatter(df[\"PetalLength\"], df[\"PetalWidth\"],\n",
+    "                       c=df[\"Cluster\"], cmap=\"viridis\", s=60, edgecolor=\"k\")\n",
+    "\n",
+    "plt.title(\"Hasil Hierarchical Clustering - Iris Dataset\")\n",
+    "plt.xlabel(\"Petal Length (cm)\")\n",
+    "plt.ylabel(\"Petal Width (cm)\")\n",
+    "plt.legend(*scatter.legend_elements(), title=\"Cluster\")\n",
+    "plt.grid(alpha=0.3)\n",
+    "plt.show()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Ringkasan Konsep\n",
+    "\n",
+    "**Tujuan Hierarchical Clustering**\n",
+    "Mengelompokkan data tanpa label (unsupervised) berdasarkan kemiripan, sekaligus menunjukkan struktur bertingkat antar kelompok.\n",
+    "\n",
+    "**Cara Kerja Agglomerative Clustering**\n",
+    "- Setiap data awalnya dianggap 1 cluster sendiri.\n",
+    "- Dua cluster dengan jarak terdekat digabung menjadi satu.\n",
+    "- Diulang sampai semua data tergabung dalam satu cluster besar.\n",
+    "- Metode \"ward\" meminimalkan peningkatan variansi dalam cluster saat penggabungan.\n",
+    "\n",
+    "**Fungsi Dendrogram**\n",
+    "Diagram pohon yang menampilkan riwayat penggabungan cluster beserta jaraknya. Memotong dendrogram secara horizontal menentukan jumlah cluster.\n",
+    "\n",
+    "**Interpretasi Hasil**\n",
+    "3 cluster yang terbentuk sejalan dengan 3 spesies Iris. Fitur PetalLength dan PetalWidth paling diskriminatif dalam memisahkan spesies.\n",
+    "\n",
+    "**Kesimpulan**\n",
+    "Hierarchical clustering berhasil menangkap struktur alami data Iris tanpa menggunakan label spesies, menjadikannya alat eksploratif yang kuat sebelum masuk ke tahap supervised learning."
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python",
+   "version": "3.10"
+  },
+  "colab": {
+   "provenance": []
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
